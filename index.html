@@ -133,6 +133,11 @@
       overflow: hidden;
     }
 
+    .work-card.saved {
+      border: 2px solid #22c55e;
+      box-shadow: 0 12px 28px rgba(34, 197, 94, 0.15);
+    }
+
     .work-card-header {
       background: linear-gradient(135deg, #f8fafc, #eef2ff);
       border-bottom: 1px solid var(--border);
@@ -154,6 +159,20 @@
       justify-content: center;
       font-weight: 900;
       font-size: 14px;
+    }
+
+    .saved-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
     }
 
     .mini-grid {
@@ -215,16 +234,44 @@
     td {
       border-bottom: 1px solid #e2e8f0;
       padding: 6px;
+      vertical-align: middle;
     }
 
     td input {
       width: 100%;
-      min-width: 120px;
+      min-width: 105px;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 10px;
       font-weight: 700;
     }
+
+    .line-saved-row td {
+      background: #f0fdf4;
+    }
+
+    .line-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 72px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .check-btn { background: #22c55e; color: #fff; }
+    .delete-btn { background: #fee2e2; color: #dc2626; }
 
     .bottom-actions {
       position: fixed;
@@ -339,14 +386,14 @@
         </section>
 
         <section class="no-print bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-950">
-          <strong>Uso recomendado:</strong> rellena una tarjeta por cada máquina/intervención. Al guardar, el parte se envía automáticamente al responsable.
+          <strong>Uso recomendado:</strong> rellena una tarjeta por cada máquina/intervención. Pulsa el visto verde para dejar guardada la línea y luego añade la siguiente. Al final, pulsa “Guardar y enviar”.
         </section>
 
         <section>
           <div class="section-title no-print">
             <div>
               <h2>Trabajos realizados</h2>
-              <p>Una tarjeta por trabajo. Estilo visual tipo Trello/Canva.</p>
+              <p>Una tarjeta por trabajo. El visto verde guarda la línea sin enviarla.</p>
             </div>
             <button type="button" onclick="addLinea()" class="btn btn-dark whitespace-nowrap">+ Añadir</button>
           </div>
@@ -417,7 +464,6 @@
   <script>
     /************************************************************
      * CONFIGURACIÓN N8N
-     * Sustituye esta URL por la Production URL del Webhook de n8n.
      * El mecánico no verá esta URL en pantalla.
      ************************************************************/
     const N8N_WEBHOOK_URL = 'https://keviingc93.app.n8n.cloud/webhook/parte-diario';
@@ -429,7 +475,11 @@
       addLinea();
     });
 
-    document.getElementById('parteForm').addEventListener('input', () => {
+    document.getElementById('parteForm').addEventListener('input', (event) => {
+      if (event.target && event.target.dataset && event.target.dataset.id) {
+        const linea = lineas.find(l => String(l.id) === String(event.target.dataset.id));
+        if (linea) linea.guardada = false;
+      }
       sincronizarDesdeDOM();
       calcularTotales();
     });
@@ -437,6 +487,7 @@
     document.getElementById('parteForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      sincronizarDesdeDOM();
       if (!validarFormulario()) return;
 
       const guardarBtn = document.getElementById('guardarBtn');
@@ -465,6 +516,7 @@
     function nuevaLineaVacia() {
       return {
         id: Date.now() + Math.random(),
+        guardada: false,
         ot: '',
         modelo: '',
         serie: '',
@@ -481,6 +533,28 @@
     function addLinea(data = null) {
       sincronizarDesdeDOM();
       lineas.push(data ? { ...nuevaLineaVacia(), ...data, id: Date.now() + Math.random() } : nuevaLineaVacia());
+      renderLineas();
+      calcularTotales();
+    }
+
+    function guardarLinea(id) {
+      sincronizarDesdeDOM();
+      const linea = lineas.find(l => String(l.id) === String(id));
+      if (!linea) return;
+
+      const tieneDatos = String(linea.ot || '').trim() ||
+        String(linea.modelo || '').trim() ||
+        String(linea.serie || '').trim() ||
+        String(linea.propietario || '').trim() ||
+        String(linea.descripcion || '').trim();
+
+      if (!tieneDatos) {
+        alert('Rellena algún dato de la línea antes de guardarla.');
+        return;
+      }
+
+      linea.guardada = true;
+      localStorage.setItem('borradorParteDiarioTaller', JSON.stringify(construirPayload(), null, 2));
       renderLineas();
       calcularTotales();
     }
@@ -503,8 +577,11 @@
       table.innerHTML = '';
 
       lineas.forEach((l, index) => {
+        const savedClass = l.guardada ? 'saved' : '';
+        const savedPill = l.guardada ? '<span class="saved-pill">✓ Guardada</span>' : '';
+
         mobile.innerHTML += `
-          <article class="work-card" data-id="${l.id}">
+          <article class="work-card ${savedClass}" data-id="${l.id}">
             <div class="work-card-header">
               <div class="flex items-center gap-3">
                 <span class="work-number">${index + 1}</span>
@@ -513,7 +590,11 @@
                   <p class="text-xs text-slate-500 font-semibold">OT / máquina / cliente / horas</p>
                 </div>
               </div>
-              <button type="button" onclick="eliminarLinea('${l.id}')" class="no-print btn btn-red py-2 px-3 text-xs">Eliminar</button>
+              <div class="flex items-center gap-2 no-print">
+                ${savedPill}
+                <button type="button" onclick="guardarLinea('${l.id}')" class="icon-btn check-btn" title="Guardar línea">✓</button>
+                <button type="button" onclick="eliminarLinea('${l.id}')" class="icon-btn delete-btn" title="Eliminar línea">×</button>
+              </div>
             </div>
             <div class="p-3 grid grid-cols-1 gap-3">
               ${cellMobile(l.id, '🧾 OT', 'ot', l.ot)}
@@ -536,7 +617,7 @@
         `;
 
         table.innerHTML += `
-          <tr data-id="${l.id}">
+          <tr data-id="${l.id}" class="${l.guardada ? 'line-saved-row' : ''}">
             ${cellTable(l.id, 'ot', l.ot)}
             ${cellTable(l.id, 'modelo', l.modelo)}
             ${cellTable(l.id, 'serie', l.serie)}
@@ -547,10 +628,13 @@
             ${cellTable(l.id, 'horasCampo', l.horasCampo, 'number', '0.25')}
             ${cellTable(l.id, 'horasDesplazamiento', l.horasDesplazamiento, 'number', '0.25')}
             <td class="no-print text-center">
-              <button type="button" onclick="eliminarLinea('${l.id}')" class="btn btn-red py-2 px-3 text-xs">X</button>
+              <div class="line-actions">
+                <button type="button" onclick="guardarLinea('${l.id}')" class="icon-btn check-btn" title="Guardar línea">✓</button>
+                <button type="button" onclick="eliminarLinea('${l.id}')" class="icon-btn delete-btn" title="Eliminar línea">×</button>
+              </div>
             </td>
           </tr>
-          <tr data-id="${l.id}" class="bg-white">
+          <tr data-id="${l.id}" class="${l.guardada ? 'line-saved-row' : ''}">
             <td colspan="10">
               <input data-id="${l.id}" data-field="descripcion" value="${escapeAttr(l.descripcion)}" placeholder="Trabajo realizado / descripción" />
             </td>
@@ -577,7 +661,8 @@
     }
 
     function sincronizarDesdeDOM() {
-      document.querySelectorAll('[data-id][data-field]').forEach(input => {
+      const selector = window.innerWidth >= 1024 ? '.desktop-table [data-id][data-field]' : '.mobile-cards [data-id][data-field]';
+      document.querySelectorAll(selector).forEach(input => {
         const id = input.dataset.id;
         const field = input.dataset.field;
         const linea = lineas.find(l => String(l.id) === String(id));
@@ -591,7 +676,6 @@
     }
 
     function calcularTotales() {
-      sincronizarDesdeDOM();
       const totalKm = lineas.reduce((acc, l) => acc + getNumber(l.km), 0);
       const totalTaller = lineas.reduce((acc, l) => acc + getNumber(l.horasTaller), 0);
       const totalCampo = lineas.reduce((acc, l) => acc + getNumber(l.horasCampo), 0);
@@ -618,19 +702,22 @@
         mecanico: document.getElementById('mecanico').value.trim(),
         centro: document.getElementById('centro').value,
         observaciones: document.getElementById('observaciones').value.trim(),
-        lineas: lineas.map((l, i) => ({
-          numeroLinea: i + 1,
-          ot: l.ot,
-          modelo: l.modelo,
-          serie: l.serie,
-          horasMaquina: l.horasMaquina,
-          propietario: l.propietario,
-          km: l.km,
-          horasTaller: l.horasTaller,
-          horasCampo: l.horasCampo,
-          horasDesplazamiento: l.horasDesplazamiento,
-          descripcion: l.descripcion
-        })),
+        lineas: lineas
+          .filter(l => String(l.ot || '').trim() || String(l.modelo || '').trim() || String(l.serie || '').trim() || String(l.propietario || '').trim() || String(l.descripcion || '').trim())
+          .map((l, i) => ({
+            numeroLinea: i + 1,
+            guardada: !!l.guardada,
+            ot: l.ot,
+            modelo: l.modelo,
+            serie: l.serie,
+            horasMaquina: l.horasMaquina,
+            propietario: l.propietario,
+            km: l.km,
+            horasTaller: l.horasTaller,
+            horasCampo: l.horasCampo,
+            horasDesplazamiento: l.horasDesplazamiento,
+            descripcion: l.descripcion
+          })),
         resumen: {
           totalKm,
           totalHorasTaller,
@@ -649,15 +736,8 @@
         return false;
       }
 
-      const tieneTrabajo = lineas.some(l =>
-        String(l.ot || '').trim() ||
-        String(l.modelo || '').trim() ||
-        String(l.serie || '').trim() ||
-        String(l.propietario || '').trim() ||
-        String(l.descripcion || '').trim()
-      );
-
-      if (!tieneTrabajo) {
+      const payload = construirPayload();
+      if (!payload.lineas.length) {
         alert('Añade al menos un trabajo realizado antes de guardar.');
         return false;
       }
@@ -674,12 +754,9 @@
       try {
         const response = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
         return response.ok;
       } catch (error) {
         console.error('Error enviando parte a n8n:', error);
@@ -696,6 +773,7 @@
     }
 
     function generarPDF() {
+      sincronizarDesdeDOM();
       const { jsPDF } = window.jspdf;
       const data = construirPayload();
       const doc = new jsPDF('p', 'mm', 'a4');
