@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parte Diario de Trabajo | Taller</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --paper: #ffffff;
+      --ink: #172033;
+      --muted: #64748b;
+      --border: #d7dee9;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --dark: #0f172a;
+      --card: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #e8edf5 0%, #f8fafc 100%);
+      color: var(--ink);
+    }
+
+    input, textarea, select, button { font-family: inherit; }
+    input, textarea, select { outline: none; background: #fff; }
+
+    .app-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px;
+      padding-bottom: 96px;
+    }
+
+    .main-card {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 28px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+      overflow: hidden;
+    }
+
+    .top-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      color: white;
+      padding: 22px 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-title h2 {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+    .field-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px 0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .field-input {
+      width: 100%;
+      min-height: 48px;
+      border: 0;
+      padding: 9px 12px 13px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      border-radius: 0;
+    }
+
+    .field-input::placeholder, textarea::placeholder { color: #94a3b8; font-weight: 500; }
+
+    .field-input:focus, textarea:focus, select:focus {
+      background: #eff6ff;
+      box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .55);
+    }
+
+    .work-card {
+      background: #fff;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 24px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
+      overflow: hidden;
+    }
+
+    .work-card-header {
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      border-bottom: 1px solid var(--border);
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .work-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 11px;
+      background: #0f172a;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric-card {
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .metric-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .metric-card strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 950;
+      color: #0f172a;
+    }
+
+    .desktop-table { display: none; }
+    .mobile-cards { display: block; }
+
+    .table-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      overflow-x: auto;
+    }
+
+    table { border-collapse: collapse; width: 100%; }
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td { border-bottom: 1px solid #e2e8f0; padding: 6px; }
+    td input { width: 100%; min-width: 120px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; font-weight: 700; }
+
+    .bottom-actions {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid #dbe3ef;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 12px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .12s ease, opacity .12s ease;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-dark { background: #0f172a; color: white; }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-red { background: #fee2e2; color: #b91c1c; }
+    .btn-soft { background: #f1f5f9; color: #0f172a; border: 1px solid #dbe3ef; }
+
+    @media (min-width: 768px) {
+      .app-shell { padding: 28px; padding-bottom: 28px; }
+      .top-header { padding: 30px; }
+      .mini-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .bottom-actions { position: static; background: transparent; border: 0; padding: 0; display: flex; }
+      .bottom-actions .btn { flex: 1; }
+    }
+
+    @media (min-width: 1024px) {
+      .desktop-table { display: block; }
+      .mobile-cards { display: none; }
+    }
+
+    @media print {
+      body { background: #fff !important; }
+      .no-print { display: none !important; }
+      .main-card { box-shadow: none !important; border: 1px solid #111827 !important; border-radius: 0 !important; }
+      .top-header { background: white !important; color: #111827 !important; border-bottom: 2px solid #111827; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app-shell">
+    <section class="main-card">
+      <header class="top-header">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+          <div>
+            <div class="badge">📋 Parte diario digital</div>
+            <h1 class="text-2xl md:text-4xl font-black mt-4 tracking-tight">Parte diario de trabajo</h1>
+            <p class="text-slate-300 mt-2 text-sm md:text-base">Formato familiar para taller, pero optimizado para rellenarlo desde el móvil.</p>
+          </div>
+          <div class="bg-white/10 border border-white/20 rounded-2xl p-4 min-w-[220px]">
+            <p class="text-xs uppercase font-black tracking-wider text-slate-300">Resumen rápido</p>
+            <p class="text-2xl font-black mt-1"><span id="quickTotal">0.00</span> h</p>
+          </div>
+        </div>
+      </header>
+
+      <form id="parteForm" class="p-4 md:p-7 space-y-7">
+        <section>
+          <div class="section-title">
+            <div>
+              <h2>Datos principales</h2>
+              <p>Información básica del parte.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="field-card md:col-span-2">
+              <label class="field-label">👨‍🔧 Mecánico</label>
+              <input id="mecanico" required type="text" placeholder="Nombre del mecánico" class="field-input" />
+            </div>
+            <div class="field-card">
+              <label class="field-label">📅 Fecha</label>
+              <input id="fechaParte" required type="date" class="field-input" />
+            </div>
+            <div class="field-card">
+              <label class="field-label">🏭 Centro</label>
+              <select id="centro" class="field-input">
+                <option value="Taller CM93 Barcelona">Taller CM93 Barcelona</option>
+                <option value="Campo / Asistencia exterior">Campo / Asistencia exterior</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="no-print bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-950">
+          <strong>Uso recomendado:</strong> el mecánico solo debe rellenar una tarjeta por cada máquina/intervención. Los totales se calculan solos.
+        </section>
+
+        <section>
+          <div class="section-title no-print">
+            <div>
+              <h2>Trabajos realizados</h2>
+              <p>Una tarjeta por trabajo. Estilo más visual tipo Trello/Canva.</p>
+            </div>
+            <button type="button" onclick="addLinea()" class="btn btn-dark whitespace-nowrap">+ Añadir</button>
+          </div>
+
+          <div class="desktop-table table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>OT</th>
+                  <th>Modelo máquina</th>
+                  <th>Nº serie / matrícula</th>
+                  <th>Horas máquina</th>
+                  <th>Propietario</th>
+                  <th>Total km</th>
+                  <th>Horas taller</th>
+                  <th>Horas campo</th>
+                  <th>Horas desplaz.</th>
+                  <th class="no-print">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="mobileCards" class="mobile-cards space-y-4"></div>
+        </section>
+
+        <section>
+          <div class="section-title">
+            <div>
+              <h2>Totales del día</h2>
+              <p>Cálculo automático según las líneas introducidas.</p>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <div class="metric-card">
+              <span>Total km</span>
+              <strong id="kmTotales">0</strong>
+            </div>
+            <div class="metric-card">
+              <span>Horas taller</span>
+              <strong id="totalTaller">0.00</strong>
+            </div>
+            <div class="metric-card">
+              <span>Horas campo</span>
+              <strong id="totalCampo">0.00</strong>
+            </div>
+            <div class="metric-card">
+              <span>Horas desplaz.</span>
+              <strong id="totalDesplazamiento">0.00</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-card">
+          <label class="field-label">📝 Observaciones</label>
+          <textarea id="observaciones" rows="5" placeholder="Ej: intervención finalizada, pendiente recambio, máquina no disponible, cliente ausente..." class="w-full p-4 text-base border-0 resize-y rounded-b-2xl"></textarea>
+        </section>
+
+        
+
+        <div class="bottom-actions no-print">
+          <button type="submit" class="btn btn-green">Guardar</button>
+          
+          <button type="button" onclick="generarPDF()" class="btn btn-dark">PDF</button>
+        </div>
+      </form>
+    </section>
+
+    
+  </main>
+
+  <script>
+    let lineas = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('fechaParte').valueAsDate = new Date();
+      addLinea();
+    });
+
+    document.getElementById('parteForm').addEventListener('input', () => {
+      sincronizarDesdeDOM();
+      calcularTotales();
+    });
+
+    document.getElementById('parteForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = construirPayload();
+      localStorage.setItem('ultimoParteDiarioTaller', JSON.stringify(payload, null, 2));
+      alert('Parte guardado correctamente.');
+    });
+
+    function nuevaLineaVacia() {
+      return {
+        id: Date.now() + Math.random(),
+        ot: '',
+        modelo: '',
+        serie: '',
+        horasMaquina: '',
+        propietario: '',
+        km: '',
+        horasTaller: '',
+        horasCampo: '',
+        horasDesplazamiento: '',
+        descripcion: ''
+      };
+    }
+
+    function addLinea(data = null) {
+      sincronizarDesdeDOM();
+      lineas.push(data ? { ...nuevaLineaVacia(), ...data, id: Date.now() + Math.random() } : nuevaLineaVacia());
+      renderLineas();
+      calcularTotales();
+    }
+
+    function eliminarLinea(id) {
+      if (lineas.length <= 1) {
+        alert('Debe existir al menos una línea de trabajo.');
+        return;
+      }
+      sincronizarDesdeDOM();
+      lineas = lineas.filter(l => String(l.id) !== String(id));
+      renderLineas();
+      calcularTotales();
+    }
+
+    function renderLineas() {
+      const mobile = document.getElementById('mobileCards');
+      const table = document.getElementById('tableBody');
+      mobile.innerHTML = '';
+      table.innerHTML = '';
+
+      lineas.forEach((l, index) => {
+        mobile.innerHTML += `
+          <article class="work-card" data-id="${l.id}">
+            <div class="work-card-header">
+              <div class="flex items-center gap-3">
+                <span class="work-number">${index + 1}</span>
+                <div>
+                  <h3 class="font-black text-slate-950 leading-tight">Trabajo ${index + 1}</h3>
+                  <p class="text-xs text-slate-500 font-semibold">OT / máquina / cliente / horas</p>
+                </div>
+              </div>
+              <button type="button" onclick="eliminarLinea('${l.id}')" class="no-print btn btn-red py-2 px-3 text-xs">Eliminar</button>
+            </div>
+            <div class="p-3 grid grid-cols-1 gap-3">
+              ${cellMobile(l.id, '🧾 OT', 'ot', l.ot)}
+              ${cellMobile(l.id, '🚜 Modelo máquina', 'modelo', l.modelo)}
+              ${cellMobile(l.id, '🔢 Número serie / matrícula', 'serie', l.serie)}
+              ${cellMobile(l.id, '⏱️ Horas máquina', 'horasMaquina', l.horasMaquina, 'number', '0.1')}
+              ${cellMobile(l.id, '👤 Propietario / Cliente', 'propietario', l.propietario)}
+              <div class="grid grid-cols-2 gap-3">
+                ${cellMobile(l.id, '🚗 Total km', 'km', l.km, 'number', '1')}
+                ${cellMobile(l.id, '🔧 H. taller', 'horasTaller', l.horasTaller, 'number', '0.25')}
+                ${cellMobile(l.id, '🏗️ H. campo', 'horasCampo', l.horasCampo, 'number', '0.25')}
+                ${cellMobile(l.id, '🛣️ H. desplaz.', 'horasDesplazamiento', l.horasDesplazamiento, 'number', '0.25')}
+              </div>
+              <div class="field-card">
+                <label class="field-label">📝 Trabajo realizado</label>
+                <textarea data-id="${l.id}" data-field="descripcion" rows="3" placeholder="Describe brevemente el trabajo realizado" class="w-full p-4 text-base border-0 resize-y rounded-b-2xl">${escapeHtml(l.descripcion)}</textarea>
+              </div>
+            </div>
+          </article>
+        `;
+
+        table.innerHTML += `
+          <tr data-id="${l.id}">
+            ${cellTable(l.id, 'ot', l.ot)}
+            ${cellTable(l.id, 'modelo', l.modelo)}
+            ${cellTable(l.id, 'serie', l.serie)}
+            ${cellTable(l.id, 'horasMaquina', l.horasMaquina, 'number', '0.1')}
+            ${cellTable(l.id, 'propietario', l.propietario)}
+            ${cellTable(l.id, 'km', l.km, 'number', '1')}
+            ${cellTable(l.id, 'horasTaller', l.horasTaller, 'number', '0.25')}
+            ${cellTable(l.id, 'horasCampo', l.horasCampo, 'number', '0.25')}
+            ${cellTable(l.id, 'horasDesplazamiento', l.horasDesplazamiento, 'number', '0.25')}
+            <td class="no-print text-center">
+              <button type="button" onclick="eliminarLinea('${l.id}')" class="btn btn-red py-2 px-3 text-xs">X</button>
+            </td>
+          </tr>
+          <tr data-id="${l.id}" class="bg-white">
+            <td colspan="9">
+              <input data-id="${l.id}" data-field="descripcion" value="${escapeAttr(l.descripcion)}" placeholder="Trabajo realizado / descripción" />
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function cellMobile(id, label, field, value, type = 'text', step = '') {
+      return `
+        <div class="field-card">
+          <label class="field-label">${label}</label>
+          <input data-id="${id}" data-field="${field}" type="${type}" step="${step}" min="0" value="${escapeAttr(value)}" class="field-input" />
+        </div>
+      `;
+    }
+
+    function cellTable(id, field, value, type = 'text', step = '') {
+      return `
+        <td>
+          <input data-id="${id}" data-field="${field}" type="${type}" step="${step}" min="0" value="${escapeAttr(value)}" />
+        </td>
+      `;
+    }
+
+    function sincronizarDesdeDOM() {
+      document.querySelectorAll('[data-id][data-field]').forEach(input => {
+        const id = input.dataset.id;
+        const field = input.dataset.field;
+        const linea = lineas.find(l => String(l.id) === String(id));
+        if (linea) linea[field] = input.value;
+      });
+    }
+
+    function getNumber(value) {
+      const n = parseFloat(String(value || '').replace(',', '.'));
+      return isNaN(n) ? 0 : n;
+    }
+
+    function calcularTotales() {
+      sincronizarDesdeDOM();
+      const totalKm = lineas.reduce((acc, l) => acc + getNumber(l.km), 0);
+      const totalTaller = lineas.reduce((acc, l) => acc + getNumber(l.horasTaller), 0);
+      const totalCampo = lineas.reduce((acc, l) => acc + getNumber(l.horasCampo), 0);
+      const totalDesplazamiento = lineas.reduce((acc, l) => acc + getNumber(l.horasDesplazamiento), 0);
+      const totalHoras = totalTaller + totalCampo + totalDesplazamiento;
+
+      document.getElementById('kmTotales').textContent = totalKm || '0';
+      document.getElementById('totalTaller').textContent = totalTaller.toFixed(2);
+      document.getElementById('totalCampo').textContent = totalCampo.toFixed(2);
+      document.getElementById('totalDesplazamiento').textContent = totalDesplazamiento.toFixed(2);
+      document.getElementById('quickTotal').textContent = totalHoras.toFixed(2);
+    }
+
+    function construirPayload() {
+      sincronizarDesdeDOM();
+      const totalKm = lineas.reduce((acc, l) => acc + getNumber(l.km), 0);
+      const totalHorasTaller = lineas.reduce((acc, l) => acc + getNumber(l.horasTaller), 0);
+      const totalHorasCampo = lineas.reduce((acc, l) => acc + getNumber(l.horasCampo), 0);
+      const totalHorasDesplazamiento = lineas.reduce((acc, l) => acc + getNumber(l.horasDesplazamiento), 0);
+
+      return {
+        tipoDocumento: 'parte_diario_trabajo',
+        fechaParte: document.getElementById('fechaParte').value,
+        mecanico: document.getElementById('mecanico').value.trim(),
+        centro: document.getElementById('centro').value,
+        observaciones: document.getElementById('observaciones').value.trim(),
+        lineas: lineas.map((l, i) => ({
+          numeroLinea: i + 1,
+          ot: l.ot,
+          modelo: l.modelo,
+          serie: l.serie,
+          horasMaquina: l.horasMaquina,
+          propietario: l.propietario,
+          km: l.km,
+          horasTaller: l.horasTaller,
+          horasCampo: l.horasCampo,
+          horasDesplazamiento: l.horasDesplazamiento,
+          descripcion: l.descripcion
+        })),
+        resumen: {
+          totalKm,
+          totalHorasTaller,
+          totalHorasCampo,
+          totalHorasDesplazamiento,
+          totalHoras: totalHorasTaller + totalHorasCampo + totalHorasDesplazamiento
+        },
+        generadoEn: new Date().toISOString()
+      };
+    }
+
+    
+
+    
+
+    function cargarUltimoParte() {
+      const saved = localStorage.getItem('ultimoParteDiarioTaller');
+      if (!saved) {
+        alert('No hay ningún parte guardado todavía.');
+        return;
+      }
+
+      const data = JSON.parse(saved);
+      document.getElementById('fechaParte').value = data.fechaParte || '';
+      document.getElementById('mecanico').value = data.mecanico || '';
+      document.getElementById('centro').value = data.centro || 'Taller CM93 Barcelona';
+      document.getElementById('observaciones').value = data.observaciones || '';
+      lineas = (data.lineas && data.lineas.length ? data.lineas : [nuevaLineaVacia()]).map(l => ({ ...nuevaLineaVacia(), ...l }));
+      renderLineas();
+      calcularTotales();
+    }
+
+    function generarPDF() {
+      const { jsPDF } = window.jspdf;
+      const data = construirPayload();
+      const doc = new jsPDF('p', 'mm', 'a4');
+      let y = 12;
+
+      doc.setLineWidth(0.4);
+      doc.roundedRect(10, y, 190, 18, 2, 2);
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('PARTE DIARIO DE TRABAJO', 105, y + 8, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text('REGISTRO DIGITAL DE TALLER / CAMPO', 105, y + 14, { align: 'center' });
+      y += 24;
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.roundedRect(10, y, 95, 12, 1, 1);
+      doc.roundedRect(108, y, 40, 12, 1, 1);
+      doc.roundedRect(151, y, 49, 12, 1, 1);
+      doc.text(`MECÁNICO: ${data.mecanico || '-'}`, 12, y + 7);
+      doc.text(`FECHA: ${data.fechaParte || '-'}`, 110, y + 7);
+      doc.text(`CENTRO: ${data.centro || '-'}`, 153, y + 7);
+      y += 18;
+
+      const headers = ['OT', 'Modelo', 'Serie/Matrícula', 'H.Maq', 'Propietario', 'Km', 'H.Taller', 'H.Campo', 'H.Despl.'];
+      const widths = [18, 22, 32, 15, 30, 12, 16, 16, 16];
+      let x = 10;
+      doc.setFont(undefined, 'bold');
+      headers.forEach((h, i) => {
+        doc.rect(x, y, widths[i], 8);
+        doc.text(h, x + 1, y + 5);
+        x += widths[i];
+      });
+      y += 8;
+      doc.setFont(undefined, 'normal');
+
+      data.lineas.forEach(l => {
+        if (y > 255) { doc.addPage(); y = 12; }
+        x = 10;
+        const values = [l.ot, l.modelo, l.serie, l.horasMaquina, l.propietario, l.km, l.horasTaller, l.horasCampo, l.horasDesplazamiento];
+        values.forEach((v, i) => {
+          doc.rect(x, y, widths[i], 8);
+          doc.text(String(v || '-').substring(0, 18), x + 1, y + 5);
+          x += widths[i];
+        });
+        y += 8;
+
+        doc.rect(10, y, 179, 13);
+        const desc = doc.splitTextToSize(`Trabajo realizado: ${l.descripcion || '-'}`, 174);
+        doc.text(desc.slice(0, 2), 12, y + 5);
+        y += 13;
+      });
+
+      y += 4;
+      if (y > 250) { doc.addPage(); y = 12; }
+      doc.setFont(undefined, 'bold');
+      doc.roundedRect(10, y, 45, 11, 1, 1);
+      doc.roundedRect(58, y, 45, 11, 1, 1);
+      doc.roundedRect(106, y, 45, 11, 1, 1);
+      doc.roundedRect(154, y, 45, 11, 1, 1);
+      doc.text(`KM: ${data.resumen.totalKm}`, 12, y + 7);
+      doc.text(`TALLER: ${data.resumen.totalHorasTaller.toFixed(2)}`, 60, y + 7);
+      doc.text(`CAMPO: ${data.resumen.totalHorasCampo.toFixed(2)}`, 108, y + 7);
+      doc.text(`DESPL.: ${data.resumen.totalHorasDesplazamiento.toFixed(2)}`, 156, y + 7);
+      y += 17;
+
+      doc.setFont(undefined, 'normal');
+      doc.roundedRect(10, y, 190, 25, 1, 1);
+      const obs = doc.splitTextToSize(`OBSERVACIONES: ${data.observaciones || '-'}`, 184);
+      doc.text(obs, 12, y + 7);
+
+      const nombre = `parte_diario_${data.mecanico || 'operario'}_${data.fechaParte || 'sin_fecha'}.pdf`.replaceAll(' ', '_');
+      doc.save(nombre);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
