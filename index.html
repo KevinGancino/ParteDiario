@@ -420,7 +420,7 @@
      * Sustituye esta URL por la Production URL del Webhook de n8n.
      * El mecánico no verá esta URL en pantalla.
      ************************************************************/
-    const N8N_WEBHOOK_URL = 'PEGA_AQUI_TU_PRODUCTION_WEBHOOK_URL_DE_N8N';
+    const N8N_WEBHOOK_URL = 'https://keviingc93.app.n8n.cloud/webhook/parte-diario';
 
     let lineas = [];
 
@@ -767,7 +767,7 @@
       const obs = doc.splitTextToSize(`OBSERVACIONES: ${data.observaciones || '-'}`, 184);
       doc.text(obs, 12, y + 7);
 
-      const nombre = `parte_diario_${data.mecanico || 'operario'}_${data.fechaParte || 'sin_fecha'}.replaceAll(' ', '_')`;
+      const nombre = `parte_diario_${data.mecanico || 'operario'}_${data.fechaParte || 'sin_fecha'}`.replaceAll(' ', '_');
       doc.save(nombre + '.pdf');
     }
 
